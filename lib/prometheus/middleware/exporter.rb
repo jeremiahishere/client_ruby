@@ -2,6 +2,7 @@
 
 require 'prometheus/client'
 require 'prometheus/client/formats/text'
+require 'prometheus/client/formats/open_metrics'
 
 module Prometheus
   module Middleware
