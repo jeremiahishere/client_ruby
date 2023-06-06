@@ -51,26 +51,77 @@ module Prometheus
           # for example counter converts to %d99.111.117.110.116.101.114 which really looks like
           # character encodings for the word counter
           def type
-            metric.type.to_s
+            metric.type.to_sym
           end
 
-          def metrics_to_s
+          def metrics_to_a
             # special case for summaries
             # special case for histograms
             # maybe start with gauges/counters because they are easy
+            output = []
+
             metric.values.collect do |label_set, value|
-              "#{name}#{label_formatter(label_set)} #{value} #{metric.timestamp}"
+              if type == :histogram
+                output << histogram(metric.name, label_set, value)
+              else
+                output << metric_line(name, label_set, value) # timestamp
+              end
             end
+
+            output.flatten
+          end
+
+          def histogram(name, label_set, value)
+            output = []
+
+            bucket = "#{name}_bucket"
+            value.each do |quantile, v|
+              next if quantile == "sum"
+              output << metric_line(bucket, label_set.merge(le: quantile), v)
+            end
+
+            output << metric_line("#{name}_sum", label_set, value["sum"])
+            output << metric_line("#{name}_count", label_set, value["+Inf"])
+
+            output
+          end
+
+          def metric_line(name, label_set, value, timestamp = nil)
+            output = "#{name}#{labels(label_set)} #{value}"
+            output += " #{timestamp}" if timestamp
+
+            output
+          end
+
+          def labels(set)
+            return if set.empty?
+
+            output = []
+
+            set.each do |key, value|
+              output << "#{key}=\"#{escape(value, :label)}\""
+            end
+
+            "{#{output.join(",")}}"
+          end
+
+          # to be rewritten
+          REGEX   = { doc: /[\n\\]/, label: /[\n\\"]/ }.freeze
+          REPLACE = { "\n" => '\n', '\\' => '\\\\', '"' => '\"' }.freeze
+          def escape(string, format = :doc)
+            string.to_s.gsub(REGEX[format], REPLACE)
           end
 
           def description
-            "# TYPE #{name} #{type}\n" \
-            "# UNIT #{name} #{unit}\n" \
-            "# HELP #{name} #{docstring}\n"
+            [
+              "# TYPE #{name} #{type}",
+              "# UNIT #{name} #{unit}",
+              "# HELP #{name} #{docstring}"
+            ]
           end
 
           def write
-            "#{description}#{metrics_to_s}"
+            (description + metrics_to_a).join("\n")
           end
         end
       end
