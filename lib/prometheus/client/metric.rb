@@ -7,13 +7,14 @@ module Prometheus
   module Client
     # Metric
     class Metric
-      attr_reader :name, :docstring, :labels, :preset_labels
+      attr_reader :name, :docstring, :labels, :preset_labels, :timestamp
 
       def initialize(name,
                      docstring:,
                      labels: [],
                      preset_labels: {},
-                     store_settings: {})
+                     store_settings: {},
+                     timestamp: nil)
 
         validate_name(name)
         validate_docstring(docstring)

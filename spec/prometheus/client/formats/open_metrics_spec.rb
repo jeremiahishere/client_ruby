@@ -46,7 +46,28 @@ describe Prometheus::Client::Formats::OpenMetrics do
         expect(lines).to include("counter_without_ts{umlauts=\"Björn\",utf=\"佖佥\",code=\"blue\"} 1.23e-45")
       end
 
-      it "generates a metric with a timestamp"
+      let(:counter_with_ts) do
+        counter_with_ts = registry.counter(:counter_with_ts,
+                               docstring: 'foo description',
+                               labels: [:umlauts, :utf, :code],
+                               preset_labels: {umlauts: 'Björn', utf: '佖佥'},
+                               timestamp: 1686111748)
+        counter_with_ts.increment(labels: { code: 'red'}, by: 42)
+        counter_with_ts.increment(labels: { code: 'green'}, by: 3.14E42)
+        counter_with_ts.increment(labels: { code: 'blue'}, by: 1.23e-45)
+        counter_with_ts
+
+      end
+
+      it "generates a metric with a timestamp" do
+        require 'debug'; debugger
+        writer = Prometheus::Client::Formats::OpenMetrics::Writer.new(counter_with_ts)
+
+        lines = writer.write.split("\n")
+
+
+      end
+
       it "generates a metric with an exemplar"
     end
 
@@ -85,7 +106,9 @@ describe Prometheus::Client::Formats::OpenMetrics do
         expect(lines).to include("histogram_without_ts_sum{code=\"ah\"} 15.2")
         expect(lines).to include("histogram_without_ts_count{code=\"ah\"} 2.0")
       end
-      it "generates a metric with a timestamp"
+      it "generates a metric with a timestamp" do
+        
+      end
       it "generates a metric with an exemplar"
     end
 
@@ -103,12 +126,23 @@ describe Prometheus::Client::Formats::OpenMetrics do
       it "generates a metric with an exemplar"
     end
 
-    describe "summary" do
-      it "generates a metric description"
-      it "generates a metric without a timestamp"
-      it "generates a metric with a timestamp"
-      it "generates a metric with an exemplar"
-    end
+    # describe "summary" do
+    #   let(:registry.summary(:summary)) do
+    #     counter_without_ts = registry.counter(:counter_without_ts,
+    #                            docstring: 'foo description',
+    #                            labels: [:umlauts, :utf, :code],
+    #                            preset_labels: {umlauts: 'Björn', utf: '佖佥'})
+    #     counter_without_ts.increment(labels: { code: 'red'}, by: 42)
+    #     counter_without_ts.increment(labels: { code: 'green'}, by: 3.14E42)
+    #     counter_without_ts.increment(labels: { code: 'blue'}, by: 1.23e-45)
+    #
+    #     counter_without_ts
+    #   end
+    #   it "generates a metric description"
+    #   it "generates a metric without a timestamp"
+    #   it "generates a metric with a timestamp"
+    #   it "generates a metric with an exemplar"
+    # end
 
     describe "info" do
       it "generates a metric description"

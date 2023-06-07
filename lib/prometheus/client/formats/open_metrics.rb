@@ -60,11 +60,12 @@ module Prometheus
             # maybe start with gauges/counters because they are easy
             output = []
 
+            require 'debug'; debugger
             metric.values.collect do |label_set, value|
               if type == :histogram
                 output << histogram(metric.name, label_set, value)
               else
-                output << metric_line(name, label_set, value) # timestamp
+                output << metric_line(name, label_set, value, timestamp) # timestamp
               end
             end
 
@@ -88,6 +89,7 @@ module Prometheus
 
           def metric_line(name, label_set, value, timestamp = nil)
             output = "#{name}#{labels(label_set)} #{value}"
+                # require 'debug'; debugger    
             output += " #{timestamp}" if timestamp
 
             output
@@ -122,6 +124,10 @@ module Prometheus
 
           def write
             (description + metrics_to_a).join("\n")
+          end
+
+          def timestamp
+            
           end
         end
       end
