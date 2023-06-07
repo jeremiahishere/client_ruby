@@ -87,8 +87,7 @@ describe Prometheus::Client::Formats::OpenMetrics do
 
         expect(lines).to include("# TYPE gauge_without_ts gauge")
         expect(lines).to include("# UNIT gauge_without_ts hotdogs")
-        # I think the \n should be escaped
-        expect(lines).to include("# HELP gauge_without_ts bar description\nwith newline")
+        expect(lines).to include("# HELP gauge_without_ts bar description\\nwith newline")
       end
 
       it "generates a metric without a timestamp" do

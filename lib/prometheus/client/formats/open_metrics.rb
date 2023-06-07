@@ -117,7 +117,7 @@ module Prometheus
             [
               "# TYPE #{name} #{type}",
               "# UNIT #{name} #{unit}",
-              "# HELP #{name} #{docstring}"
+              "# HELP #{name} #{escape(docstring, :doc)}"
             ]
           end
 
