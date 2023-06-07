@@ -60,7 +60,6 @@ module Prometheus
             # maybe start with gauges/counters because they are easy
             output = []
 
-            require 'debug'; debugger
             metric.values.collect do |label_set, value|
               if type == :histogram
                 output << histogram(metric.name, label_set, value)
