@@ -12,6 +12,20 @@ describe Prometheus::Client::Formats::OpenMetrics do
 
   let(:registry) { Prometheus::Client::Registry.new }
 
+  it "If a unit is specified it MUST be provided in a UNIT metadata line. In addition, an underscore and the unit MUST be the suffix of the MetricFamily name."
+  it "If more than one MetricPoint is exposed for a Metric, the ordering should be by label permutation, then by oldest to newest timestamp"
+    # for example
+    # # TYPE foo_seconds summary
+    # # UNIT foo_seconds seconds
+    # foo_seconds_count{a="bb"} 0 123
+    # foo_seconds_sum{a="bb"} 0 123
+    # foo_seconds_count{a="bb"} 0 456
+    # foo_seconds_sum{a="bb"} 0 456
+    # foo_seconds_count{a="ccc"} 0 123
+    # foo_seconds_sum{a="ccc"} 0 123
+    # foo_seconds_count{a="ccc"} 0 456
+    # foo_seconds_sum{a="ccc"} 0 456
+
   describe "metric writers" do
     describe "counter" do
       let(:counter_without_ts) do
@@ -67,6 +81,12 @@ describe Prometheus::Client::Formats::OpenMetrics do
         expect(lines).to include("counter_with_ts{umlauts=\"Björn\",utf=\"佖佥\",code=\"blue\"} 1.23e-45 1000001")
       end
 
+      it "A MetricPoint in a Metric with the type Counter MUST have one value called Total. A Total is a non-NaN and MUST be monotonically non-decreasing over time, starting from 0."
+      it "A MetricPoint in a Metric with the type Counter SHOULD have a Timestamp value called Created. This can help ingestors discern between new metrics and long-running ones it did not see before.  Created does not have a value except the timestamp."
+
+      it "A MetricPoint in a Metric's Counter's Total MAY reset to 0. If present, the corresponding Created time MUST also be set to the timestamp of the reset."
+      it "A MetricPoint in a Metric's Counter's Total MAY have an exemplar."
+
       xit "generates a metric with an exemplar"
     end
 
@@ -100,6 +120,8 @@ describe Prometheus::Client::Formats::OpenMetrics do
 
       it "generates a metric with a timestamp"
       it "generates a metric with an exemplar"
+      
+      it "A MetricPoint in a Metric with the type gauge MUST have a single value.  I am pretty sure this means a single metric per label permutation per gauge but not 100% (JH)"
     end
 
     describe "histogram" do
@@ -141,6 +163,16 @@ describe Prometheus::Client::Formats::OpenMetrics do
         
       end
       it "generates a metric with an exemplar"
+
+      it "A Histogram MetricPoint MUST contain at least one bucket, and SHOULD contain Sum, and Created values. Every bucket MUST have a threshold and a value."
+      it "Histogram MetricPoints MUST have one bucket with an +Inf threshold."
+      it "Buckets MUST be cumulative. As an example for a metric representing request latency in seconds its values for buckets with thresholds 1, 2, 3, and +Inf MUST follow value_1 <= value_2 <= value_3 <= value_+Inf. If ten requests took 1 second each, the values of the 1, 2, 3, and +Inf buckets MUST equal 10."
+      it "The +Inf bucket counts all requests. If present, the Sum value MUST equal the Sum of all the measured event values. Bucket thresholds within a MetricPoint MUST be unique."
+      it "Semantically, Sum, and buckets values are counters so MUST NOT be NaN or negative. Negative threshold buckets MAY be used, but then the Histogram MetricPoint MUST NOT contain a sum value as it would no longer be a counter semantically. Bucket thresholds MUST NOT equal NaN. Count and bucket values MUST be integers."
+      it "A Histogram MetricPoint SHOULD have a Timestamp value called Created. This can help ingestors discern between new metrics and long-running ones it did not see before."
+      it "A Histogram's Metric's LabelSet MUST NOT have a 'le' label name."
+      it "Bucket values MAY have exemplars. Buckets are cumulative to allow monitoring systems to drop any non-+Inf bucket for performance/anti-denial-of-service reasons in a way that loses granularity but is still a valid Histogram."
+      it "Each bucket covers the values less and or equal to it, and the value of the exemplar MUST be within this range. Exemplars SHOULD be put into the bucket with the highest value. A bucket MUST NOT have more than one exemplar."
     end
 
     describe "gaugehistogram" do
@@ -155,6 +187,11 @@ describe Prometheus::Client::Formats::OpenMetrics do
       it "generates a metric without a timestamp"
       it "generates a metric with a timestamp"
       it "generates a metric with an exemplar"
+
+      it "A point of a StateSet metric MAY contain multiple states and MUST contain one boolean per State. States have a name which are Strings."
+      it "A StateSet Metric's LabelSet MUST NOT have a label name which is the same as the name of its MetricFamily."
+      it "If encoded as a StateSet, ENUMs MUST have exactly one Boolean which is true within a MetricPoint."
+      it "MetricFamilies of type StateSets MUST have an empty Unit string."
     end
 
     # describe "summary" do
@@ -180,6 +217,10 @@ describe Prometheus::Client::Formats::OpenMetrics do
       it "generates a metric without a timestamp"
       it "generates a metric with a timestamp"
       it "generates a metric with an exemplar"
+
+      it "A MetricPoint of an Info Metric contains a LabelSet. An Info MetricPoint's LabelSet MUST NOT have a label name which is the same as the name of a label of the LabelSet of its Metric."
+      it "Info MAY be used to encode ENUMs whose values do not change over time, such as the type of a network interface."
+      it "MetricFamilies of type Info MUST have an empty Unit string."
     end
 
     describe "unknown" do
