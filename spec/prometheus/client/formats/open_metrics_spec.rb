@@ -49,22 +49,22 @@ describe Prometheus::Client::Formats::OpenMetrics do
       let(:counter_with_ts) do
         counter_with_ts = registry.counter(:counter_with_ts,
                                docstring: 'foo description',
-                               labels: [:umlauts, :utf, :code],
-                               preset_labels: {umlauts: 'Björn', utf: '佖佥'},
-                               timestamp: 1686111748)
-        counter_with_ts.increment(labels: { code: 'red'}, by: 42, timestamp: Time.now.to_i)
-        counter_with_ts.increment(labels: { code: 'green'}, by: 3.14E42, timestamp: Time.now.to_i)
-        counter_with_ts.increment(labels: { code: 'blue'}, by: 1.23e-45, timestamp: Time.now.to_i + 1)
-        counter_with_ts
+                               labels: [:umlauts, :utf, :code, :_timestamp],
+                               preset_labels: {umlauts: 'Björn', utf: '佖佥'})
+        counter_with_ts.increment(labels: { code: 'red', _timestamp: 1000000}, by: 42)
+        counter_with_ts.increment(labels: { code: 'red', _timestamp: 1000000}, by: 1)
+        counter_with_ts.increment(labels: { code: 'blue', _timestamp: 1000001}, by: 1.23e-45)
 
+        counter_with_ts
       end
 
-      xit "generates a metric with a timestamp" do
+      it "generates a metric with a timestamp" do
         writer = Prometheus::Client::Formats::OpenMetrics::Writer.new(counter_with_ts)
 
         lines = writer.write.split("\n")
 
-        expect(lines).to include("???")
+        expect(lines).to include("counter_with_ts{umlauts=\"Björn\",utf=\"佖佥\",code=\"red\"} 43.0 1000000")
+        expect(lines).to include("counter_with_ts{umlauts=\"Björn\",utf=\"佖佥\",code=\"blue\"} 1.23e-45 1000001")
       end
 
       xit "generates a metric with an exemplar"

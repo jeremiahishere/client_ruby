@@ -64,7 +64,7 @@ module Prometheus
               if type == :histogram
                 output << histogram(metric.name, label_set, value)
               else
-                output << metric_line(name, label_set, value, timestamp) # timestamp
+                output << metric_line(name, label_set, value)
               end
             end
 
@@ -86,12 +86,19 @@ module Prometheus
             output
           end
 
-          def metric_line(name, label_set, value, timestamp = nil)
+          def metric_line(name, label_set, value)
             output = "#{name}#{labels(label_set)} #{value}"
                 # require 'debug'; debugger    
-            output += " #{timestamp}" if timestamp
+            ts = timestamp(label_set)
+            output += " #{ts}" if ts
 
             output
+          end
+
+          def timestamp(set)
+            return unless set.has_key?(:_timestamp)
+
+            set[:_timestamp]
           end
 
           def labels(set)
@@ -99,7 +106,7 @@ module Prometheus
 
             output = []
 
-            set.each do |key, value|
+            set.except(:_timestamp).each do |key, value|
               output << "#{key}=\"#{escape(value, :label)}\""
             end
 
@@ -125,9 +132,6 @@ module Prometheus
             (description + metrics_to_a).join("\n")
           end
 
-          def timestamp
-            
-          end
         end
       end
     end
