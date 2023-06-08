@@ -12,6 +12,7 @@ describe Prometheus::Client::Formats::OpenMetrics do
 
   let(:registry) { Prometheus::Client::Registry.new }
 
+  it "created should not have any labels"
   it "If a unit is specified it MUST be provided in a UNIT metadata line. In addition, an underscore and the unit MUST be the suffix of the MetricFamily name."
   it "If more than one MetricPoint is exposed for a Metric, the ordering should be by label permutation, then by oldest to newest timestamp"
     # for example
@@ -164,12 +165,13 @@ describe Prometheus::Client::Formats::OpenMetrics do
       end
       it "generates a metric with an exemplar"
 
-      it "A Histogram MetricPoint MUST contain at least one bucket, and SHOULD contain Sum, and Created values. Every bucket MUST have a threshold and a value."
-      it "Histogram MetricPoints MUST have one bucket with an +Inf threshold."
-      it "Buckets MUST be cumulative. As an example for a metric representing request latency in seconds its values for buckets with thresholds 1, 2, 3, and +Inf MUST follow value_1 <= value_2 <= value_3 <= value_+Inf. If ten requests took 1 second each, the values of the 1, 2, 3, and +Inf buckets MUST equal 10."
-      it "The +Inf bucket counts all requests. If present, the Sum value MUST equal the Sum of all the measured event values. Bucket thresholds within a MetricPoint MUST be unique."
-      it "Semantically, Sum, and buckets values are counters so MUST NOT be NaN or negative. Negative threshold buckets MAY be used, but then the Histogram MetricPoint MUST NOT contain a sum value as it would no longer be a counter semantically. Bucket thresholds MUST NOT equal NaN. Count and bucket values MUST be integers."
-      it "A Histogram MetricPoint SHOULD have a Timestamp value called Created. This can help ingestors discern between new metrics and long-running ones it did not see before."
+      it "generates a metric with at least one bucket, sum, created, and count metric points"
+      it "generates a bucket with a +Inf threshold that counts all values"
+      it "generates cumulative buckets, a low value increments the count in all buckets with higher values"
+      it "generates a sum that equals the sum of all measured event values"
+      it "if there is a negative valued bucket, there should be no sum metric"
+      it "is not clear if we should print the bucket multiple times with different timestamps to expose multiple exemplars"
+      
       it "A Histogram's Metric's LabelSet MUST NOT have a 'le' label name."
       it "Bucket values MAY have exemplars. Buckets are cumulative to allow monitoring systems to drop any non-+Inf bucket for performance/anti-denial-of-service reasons in a way that loses granularity but is still a valid Histogram."
       it "Each bucket covers the values less and or equal to it, and the value of the exemplar MUST be within this range. Exemplars SHOULD be put into the bucket with the highest value. A bucket MUST NOT have more than one exemplar."
