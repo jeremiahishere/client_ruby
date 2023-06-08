@@ -3,6 +3,9 @@
 require 'prometheus/client'
 require 'prometheus/client/registry'
 require 'prometheus/client/formats/open_metrics'
+require "prometheus/client/value_with_exemplars"
+require "prometheus/client/exemplar_collection"
+require "prometheus/client/exemplar"
 
 describe Prometheus::Client::Formats::OpenMetrics do
   # Reset the data store
@@ -61,25 +64,35 @@ describe Prometheus::Client::Formats::OpenMetrics do
         expect(lines).to include("counter_without_ts{umlauts=\"Björn\",utf=\"佖佥\",code=\"blue\"} 1.23e-45")
       end
 
-      let(:counter_with_ts) do
-        counter_with_ts = registry.counter(:counter_with_ts,
+      let(:counter_with_exemplars) do
+        counter_with_exemplars = registry.counter(:counter_with_exemplars,
                                docstring: 'foo description',
-                               labels: [:umlauts, :utf, :code, :_timestamp],
+                               labels: [:umlauts, :utf, :code],
                                preset_labels: {umlauts: 'Björn', utf: '佖佥'})
-        counter_with_ts.increment(labels: { code: 'red', _timestamp: 1000000}, by: 42)
-        counter_with_ts.increment(labels: { code: 'red', _timestamp: 1000000}, by: 1)
-        counter_with_ts.increment(labels: { code: 'blue', _timestamp: 1000001}, by: 1.23e-45)
 
-        counter_with_ts
+        counter_with_exemplars.increment(
+          labels: { code: 'red'},
+          by: 42,
+          exemplar: Prometheus::Client::Exemplar.new(labels: {trace_id: 12345}, timestamp: 1000)
+        )
+        counter_with_exemplars.increment(labels: { code: 'red'}, by: 1)
+        counter_with_exemplars.increment(
+          labels: { code: 'blue'},
+          by: 1.23e-45,
+          exemplar: Prometheus::Client::Exemplar.new(labels: {trace_id: 23456}, timestamp: 2000)
+        )
+
+        counter_with_exemplars
       end
 
-      it "generates a metric with a timestamp" do
-        writer = Prometheus::Client::Formats::OpenMetrics::Writer.new(counter_with_ts)
+      it "generates a metric with an exemplar" do
+        writer = Prometheus::Client::Formats::OpenMetrics::Writer.new(counter_with_exemplars)
 
         lines = writer.write.split("\n")
+        puts lines
 
-        expect(lines).to include("counter_with_ts{umlauts=\"Björn\",utf=\"佖佥\",code=\"red\"} 43.0 1000000")
-        expect(lines).to include("counter_with_ts{umlauts=\"Björn\",utf=\"佖佥\",code=\"blue\"} 1.23e-45 1000001")
+        expect(lines).to include("counter_with_exemplars{umlauts=\"Björn\",utf=\"佖佥\",code=\"red\"} 43.0 # {trace_id=\"12345\"} 42.0 1000")
+        expect(lines).to include("counter_with_exemplars{umlauts=\"Björn\",utf=\"佖佥\",code=\"blue\"} 1.23e-45 # {trace_id=\"23456\"} 1.23e-45 2000")
       end
 
       it "A MetricPoint in a Metric with the type Counter MUST have one value called Total. A Total is a non-NaN and MUST be monotonically non-decreasing over time, starting from 0."

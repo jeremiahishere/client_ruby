@@ -66,7 +66,7 @@ module Prometheus
       # in the sum of observations. See
       # https://prometheus.io/docs/practices/histograms/#count-and-sum-of-observations
       # for details.
-      def observe(value, labels: {})
+      def observe(value, labels: {}, exemplar: nil)
         bucket = buckets.find {|upper_limit| upper_limit >= value  }
         bucket = "+Inf" if bucket.nil?
 
@@ -79,8 +79,8 @@ module Prometheus
         sum_label_set[:le] = "sum"
 
         @store.synchronize do
-          @store.increment(labels: bucket_label_set, by: 1)
-          @store.increment(labels: sum_label_set, by: value)
+          @store.increment(labels: bucket_label_set, by: 1, exemplar: exemplar)
+          @store.increment(labels: sum_label_set, by: value, exemplar: exemplar)
         end
       end
 

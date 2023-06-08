@@ -21,13 +21,6 @@ module Prometheus
           (lines << nil).join(DELIMITER)
         end
 
-        # big questions
-        # - how to pull the timestamp out of the metrics repo
-        # - how to pull the right number of metrics rows for the given number of timestamps out of
-        #   the metrics repo
-        # - how to pull out exemplars (and the right number of metric rows for exemplars)
-        # - label formatting (copy from the other file)
-        # - what does a sample mean in the docs, who decides that we should sample a specific value?
         class Writer
           attr_reader :metric
           def initialize(metric)
@@ -60,11 +53,13 @@ module Prometheus
             # maybe start with gauges/counters because they are easy
             output = []
 
-            metric.values.collect do |label_set, value|
-              if type == :histogram
+            if type == :histogram
+              metric.values.collect do |label_set, value|
                 output << histogram(metric.name, label_set, value)
-              else
-                output << metric_line(name, label_set, value)
+              end
+            else
+              metric.values(with_exemplars: true).collect do |label_set, value_with_exemplars|
+                output << metric_line(name, label_set, value_with_exemplars.value, value_with_exemplars.most_recent_exemplar)
               end
             end
 
@@ -86,19 +81,17 @@ module Prometheus
             output
           end
 
-          def metric_line(name, label_set, value)
+          def metric_line(name, label_set, value, exemplar = nil)
             output = "#{name}#{labels(label_set)} #{value}"
-                # require 'debug'; debugger    
-            ts = timestamp(label_set)
-            output += " #{ts}" if ts
+            output += " #{timestamp}" if timestamp
+            output += " # #{labels(exemplar.labels)} #{exemplar.value} #{exemplar.timestamp}" if exemplar
 
             output
           end
 
-          def timestamp(set)
-            return unless set.has_key?(:_timestamp)
-
-            set[:_timestamp]
+          def timestamp
+            # not implemented yet
+            return nil
           end
 
           def labels(set)
@@ -106,7 +99,7 @@ module Prometheus
 
             output = []
 
-            set.except(:_timestamp).each do |key, value|
+            set.each do |key, value|
               output << "#{key}=\"#{escape(value, :label)}\""
             end
 

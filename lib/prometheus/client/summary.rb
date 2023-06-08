@@ -17,12 +17,12 @@ module Prometheus
       # in the sum of observations. See
       # https://prometheus.io/docs/practices/histograms/#count-and-sum-of-observations
       # for details.
-      def observe(value, labels: {})
+      def observe(value, labels: {}, exemplar: nil)
         base_label_set = label_set_for(labels)
 
         @store.synchronize do
-          @store.increment(labels: base_label_set.merge(quantile: "count"), by: 1)
-          @store.increment(labels: base_label_set.merge(quantile: "sum"), by: value)
+          @store.increment(labels: base_label_set.merge(quantile: "count"), by: 1, exemplar: exemplar)
+          @store.increment(labels: base_label_set.merge(quantile: "sum"), by: value, exemplar: exemplar)
         end
       end
 

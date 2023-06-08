@@ -12,26 +12,26 @@ module Prometheus
       end
 
       # Sets the value for the given label set
-      def set(value, labels: {})
+      def set(value, labels: {}, exemplar: nil)
         unless value.is_a?(Numeric)
           raise ArgumentError, 'value must be a number'
         end
 
-        @store.set(labels: label_set_for(labels), val: value)
+        @store.set(labels: label_set_for(labels), val: value, exemplar: nil)
       end
 
       # Increments Gauge value by 1 or adds the given value to the Gauge.
       # (The value can be negative, resulting in a decrease of the Gauge.)
-      def increment(by: 1, labels: {})
+      def increment(by: 1, labels: {}, exemplar: nil)
         label_set = label_set_for(labels)
-        @store.increment(labels: label_set, by: by)
+        @store.increment(labels: label_set, by: by, exemplar: nil)
       end
 
       # Decrements Gauge value by 1 or subtracts the given value from the Gauge.
       # (The value can be negative, resulting in a increase of the Gauge.)
-      def decrement(by: 1, labels: {})
+      def decrement(by: 1, labels: {}, exemplar: nil)
         label_set = label_set_for(labels)
-        @store.increment(labels: label_set, by: -by)
+        @store.increment(labels: label_set, by: -by, exemplar: nil)
       end
     end
   end

@@ -24,7 +24,7 @@ module Prometheus
 
         class MetricStore
           def initialize
-            @internal_store = Hash.new { |hash, key| hash[key] = 0.0 }
+            @internal_store = Hash.new { |hash, key| hash[key] = ValueWithExemplars.new }
             @lock = Monitor.new
           end
 
@@ -32,26 +32,42 @@ module Prometheus
             @lock.synchronize { yield }
           end
 
-          def set(labels:, val:)
+          def set(labels:, val:, exemplar: nil)
             synchronize do
-              @internal_store[labels] = val.to_f
+              @internal_store[labels].set(value: val, exemplar: exemplar)
             end
           end
 
-          def increment(labels:, by: 1)
+          def increment(labels:, by: 1, exemplar: nil)
             synchronize do
-              @internal_store[labels] += by
+              @internal_store[labels].increment(by: by, exemplar: exemplar)
             end
           end
 
-          def get(labels:)
+          def get(labels:, with_exemplars: false)
             synchronize do
-              @internal_store[labels]
+              if with_exemplars
+                @internal_store[labels]
+              else
+                @internal_store[labels].value
+              end
             end
           end
 
-          def all_values
-            synchronize { @internal_store.dup }
+          def all_values(with_exemplars: false)
+            synchronize do
+              if with_exemplars
+                @internal_store.dup
+              else
+                # this mess is just for backwards compatibility
+                output = Hash.new { |hash, key| hash[key] = 0.0 }
+                @internal_store.keys.each do |k|
+                  output[k] = @internal_store[k].value
+                end
+
+                output
+              end
+            end
           end
         end
 

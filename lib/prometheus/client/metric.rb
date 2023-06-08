@@ -2,19 +2,20 @@
 
 require 'thread'
 require 'prometheus/client/label_set_validator'
+require 'prometheus/client/exemplar'
+require 'prometheus/client/exemplar_collection'
 
 module Prometheus
   module Client
     # Metric
     class Metric
-      attr_reader :name, :docstring, :labels, :preset_labels, :timestamp
+      attr_reader :name, :docstring, :labels, :preset_labels, :created_at
 
       def initialize(name,
                      docstring:,
                      labels: [],
                      preset_labels: {},
-                     store_settings: {},
-                     timestamp: nil)
+                     store_settings: {})
 
         validate_name(name)
         validate_docstring(docstring)
@@ -41,6 +42,8 @@ module Prometheus
           metric_type: type,
           metric_settings: store_settings
         )
+
+        @created_at = Time.now.to_i
 
         # WARNING: Our internal store can be replaced later by `with_labels`
         # Everything we do after this point needs to still work if @store gets replaced
@@ -77,8 +80,8 @@ module Prometheus
       end
 
       # Returns all label sets with their values
-      def values
-        @store.all_values
+      def values(with_exemplars: false)
+        @store.all_values(with_exemplars: with_exemplars)
       end
 
       private

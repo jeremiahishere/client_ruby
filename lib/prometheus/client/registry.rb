@@ -37,13 +37,12 @@ module Prometheus
         end
       end
 
-      def counter(name, docstring:, labels: [], preset_labels: {}, store_settings: {}, timestamp: nil)
+      def counter(name, docstring:, labels: [], preset_labels: {}, store_settings: {})
         register(Counter.new(name,
                              docstring: docstring,
                              labels: labels,
                              preset_labels: preset_labels,
-                             store_settings: store_settings,
-                             timestamp: timestamp))
+                             store_settings: store_settings))
       end
 
       def summary(name, docstring:, labels: [], preset_labels: {}, store_settings: {})
