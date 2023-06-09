@@ -9,7 +9,7 @@ module Prometheus
   module Client
     # Metric
     class Metric
-      attr_reader :name, :docstring, :labels, :preset_labels, :created_at
+      attr_reader :name, :docstring, :labels, :preset_labels
 
       def initialize(name,
                      docstring:,
@@ -42,8 +42,6 @@ module Prometheus
           metric_type: type,
           metric_settings: store_settings
         )
-
-        @created_at = Time.now.to_i
 
         # WARNING: Our internal store can be replaced later by `with_labels`
         # Everything we do after this point needs to still work if @store gets replaced

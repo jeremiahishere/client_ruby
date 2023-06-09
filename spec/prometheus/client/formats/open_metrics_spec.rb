@@ -32,38 +32,38 @@ describe Prometheus::Client::Formats::OpenMetrics do
 
   describe "metric writers" do
     describe "counter" do
-      let(:counter_without_ts) do
-        counter_without_ts = registry.counter(:counter_without_ts,
+      let(:counter_metric) do
+        counter_metric = registry.counter(:counter_metric,
                                docstring: 'foo description',
                                labels: [:umlauts, :utf, :code],
                                preset_labels: {umlauts: 'Björn', utf: '佖佥'})
-        counter_without_ts.increment(labels: { code: 'red'}, by: 42)
-        counter_without_ts.increment(labels: { code: 'green'}, by: 3.14E42)
-        counter_without_ts.increment(labels: { code: 'blue'}, by: 1.23e-45)
+        counter_metric.increment(labels: { code: 'red'}, by: 42)
+        counter_metric.increment(labels: { code: 'green'}, by: 3.14E42)
+        counter_metric.increment(labels: { code: 'blue'}, by: 1.23e-45)
 
-        counter_without_ts
+        counter_metric
       end
 
       it "generates a metric description" do
-        writer = Prometheus::Client::Formats::OpenMetrics::Writer.new(counter_without_ts)
+        writer = Prometheus::Client::Formats::OpenMetrics::Writer.new(counter_metric)
 
         lines = writer.write.split("\n")
 
-        expect(lines).to include("# TYPE counter_without_ts counter")
-        expect(lines).to include("# UNIT counter_without_ts hotdogs")
-        expect(lines).to include("# HELP counter_without_ts foo description")
+        expect(lines).to include("# TYPE counter_metric counter")
+        expect(lines).to include("# UNIT counter_metric hotdogs")
+        expect(lines).to include("# HELP counter_metric foo description")
       end
 
-      it "generates a metric without a timestamp" do
-        writer = Prometheus::Client::Formats::OpenMetrics::Writer.new(counter_without_ts)
+      it "generates a metric without exemplars" do
+        writer = Prometheus::Client::Formats::OpenMetrics::Writer.new(counter_metric)
 
         lines = writer.write.split("\n")
 
-        expect(lines).to include("counter_without_ts{umlauts=\"Björn\",utf=\"佖佥\",code=\"red\"} 42.0")
-        expect(lines).to include("counter_without_ts{umlauts=\"Björn\",utf=\"佖佥\",code=\"green\"} 3.14e+42")
-        expect(lines).to include("counter_without_ts{umlauts=\"Björn\",utf=\"佖佥\",code=\"blue\"} 1.23e-45")
+        expect(lines).to include("counter_metric{umlauts=\"Björn\",utf=\"佖佥\",code=\"red\"} 42.0")
+        expect(lines).to include("counter_metric{umlauts=\"Björn\",utf=\"佖佥\",code=\"green\"} 3.14e+42")
+        expect(lines).to include("counter_metric{umlauts=\"Björn\",utf=\"佖佥\",code=\"blue\"} 1.23e-45")
       end
-
+      
       let(:counter_with_exemplars) do
         counter_with_exemplars = registry.counter(:counter_with_exemplars,
                                docstring: 'foo description',
@@ -78,7 +78,7 @@ describe Prometheus::Client::Formats::OpenMetrics do
         counter_with_exemplars.increment(labels: { code: 'red'}, by: 1)
         counter_with_exemplars.increment(
           labels: { code: 'blue'},
-          by: 1.23e-45,
+          by: 1000,
           exemplar: Prometheus::Client::Exemplar.new(labels: {trace_id: 23456}, timestamp: 2000)
         )
 
@@ -89,19 +89,33 @@ describe Prometheus::Client::Formats::OpenMetrics do
         writer = Prometheus::Client::Formats::OpenMetrics::Writer.new(counter_with_exemplars)
 
         lines = writer.write.split("\n")
-        puts lines
 
         expect(lines).to include("counter_with_exemplars{umlauts=\"Björn\",utf=\"佖佥\",code=\"red\"} 43.0 # {trace_id=\"12345\"} 42.0 1000")
-        expect(lines).to include("counter_with_exemplars{umlauts=\"Björn\",utf=\"佖佥\",code=\"blue\"} 1.23e-45 # {trace_id=\"23456\"} 1.23e-45 2000")
+        expect(lines).to include("counter_with_exemplars{umlauts=\"Björn\",utf=\"佖佥\",code=\"blue\"} 1000.0 # {trace_id=\"23456\"} 1000.0 2000")
       end
 
-      it "A MetricPoint in a Metric with the type Counter MUST have one value called Total. A Total is a non-NaN and MUST be monotonically non-decreasing over time, starting from 0."
-      it "A MetricPoint in a Metric with the type Counter SHOULD have a Timestamp value called Created. This can help ingestors discern between new metrics and long-running ones it did not see before.  Created does not have a value except the timestamp."
+      it "generates a total metric point with exemplar and without labels" do
+        writer = Prometheus::Client::Formats::OpenMetrics::Writer.new(counter_with_exemplars)
+
+        lines = writer.write.split("\n")
+
+        expect(lines).to include("counter_with_exemplars_total 1043.0 # {trace_id=\"23456\"} 1000.0 2000")
+      end
+
+      it "generates a created metric point without exemplar and with labels" do
+        writer = Prometheus::Client::Formats::OpenMetrics::Writer.new(counter_with_exemplars)
+
+        lines = writer.write.split("\n")
+        puts lines
+
+        # this is hard to test
+        red_created = counter_with_exemplars.values(with_exemplars: true)[{:umlauts=>"Björn", :utf=>"佖佥", :code=>"red"}].created
+        expect(lines).to include("counter_with_exemplars_created{umlauts=\"Björn\",utf=\"佖佥\",code=\"red\"} #{red_created}")
+        blue_created = counter_with_exemplars.values(with_exemplars: true)[{:umlauts=>"Björn", :utf=>"佖佥", :code=>"blue"}].created
+        expect(lines).to include("counter_with_exemplars_created{umlauts=\"Björn\",utf=\"佖佥\",code=\"blue\"} #{blue_created}")
+      end
 
       it "A MetricPoint in a Metric's Counter's Total MAY reset to 0. If present, the corresponding Created time MUST also be set to the timestamp of the reset."
-      it "A MetricPoint in a Metric's Counter's Total MAY have an exemplar."
-
-      xit "generates a metric with an exemplar"
     end
 
     describe "gauge" do
@@ -211,15 +225,15 @@ describe Prometheus::Client::Formats::OpenMetrics do
 
     # describe "summary" do
     #   let(:registry.summary(:summary)) do
-    #     counter_without_ts = registry.counter(:counter_without_ts,
+    #     counter_metric = registry.counter(:counter_metric,
     #                            docstring: 'foo description',
     #                            labels: [:umlauts, :utf, :code],
     #                            preset_labels: {umlauts: 'Björn', utf: '佖佥'})
-    #     counter_without_ts.increment(labels: { code: 'red'}, by: 42)
-    #     counter_without_ts.increment(labels: { code: 'green'}, by: 3.14E42)
-    #     counter_without_ts.increment(labels: { code: 'blue'}, by: 1.23e-45)
+    #     counter_metric.increment(labels: { code: 'red'}, by: 42)
+    #     counter_metric.increment(labels: { code: 'green'}, by: 3.14E42)
+    #     counter_metric.increment(labels: { code: 'blue'}, by: 1.23e-45)
     #
-    #     counter_without_ts
+    #     counter_metric
     #   end
     #   it "generates a metric description"
     #   it "generates a metric without a timestamp"

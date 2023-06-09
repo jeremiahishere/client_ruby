@@ -54,9 +54,9 @@ module Prometheus
             output = []
 
             if type == :histogram
-              metric.values.collect do |label_set, value|
-                output << histogram(metric.name, label_set, value)
-              end
+              output << histogram
+            elsif type == :counter
+              output << counter
             else
               metric.values(with_exemplars: true).collect do |label_set, value_with_exemplars|
                 output << metric_line(name, label_set, value_with_exemplars.value, value_with_exemplars.most_recent_exemplar)
@@ -66,17 +66,42 @@ module Prometheus
             output.flatten
           end
 
-          def histogram(name, label_set, value)
+          def histogram
             output = []
 
-            bucket = "#{name}_bucket"
-            value.each do |quantile, v|
-              next if quantile == "sum"
-              output << metric_line(bucket, label_set.merge(le: quantile), v)
+            metric.values.collect do |label_set, value|
+              bucket = "#{name}_bucket"
+              value.each do |quantile, v|
+                next if quantile == "sum"
+                output << metric_line(bucket, label_set.merge(le: quantile), v)
+              end
+
+              output << metric_line("#{name}_sum", label_set, value["sum"])
+              output << metric_line("#{name}_count", label_set, value["+Inf"])
             end
 
-            output << metric_line("#{name}_sum", label_set, value["sum"])
-            output << metric_line("#{name}_count", label_set, value["+Inf"])
+            output
+          end
+
+          def counter
+            output = []
+            total_value = 0
+            most_recent_total_exemplar = Exemplar.new(labels: {}, timestamp: 0)
+
+            metric.values(with_exemplars: true).collect do |label_set, value_with_exemplars|
+              value = value_with_exemplars.value
+              exemplar = value_with_exemplars.most_recent_exemplar
+              created = value_with_exemplars.created
+
+              output << metric_line(name, label_set, value, exemplar)
+              output << metric_line("#{name}_created", label_set, created)
+
+              total_value += value
+              most_recent_total_exemplar = exemplar if exemplar && exemplar.timestamp > most_recent_total_exemplar.timestamp
+            end
+            
+            # assume any exemplar fits here (regardless of labels) as long as it is the most recent
+            output << metric_line("#{name}_total", {}, total_value, most_recent_total_exemplar)
 
             output
           end
