@@ -57,7 +57,7 @@ module Prometheus
               output << histogram
             elsif type == :counter
               output << counter
-            else
+            else # if [:gauge].include?(type)
               metric.values(with_exemplars: true).collect do |label_set, value_with_exemplars|
                 output << metric_line(name, label_set, value_with_exemplars.value, value_with_exemplars.most_recent_exemplar)
               end

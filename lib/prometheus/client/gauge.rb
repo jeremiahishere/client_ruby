@@ -17,21 +17,21 @@ module Prometheus
           raise ArgumentError, 'value must be a number'
         end
 
-        @store.set(labels: label_set_for(labels), val: value, exemplar: nil)
+        @store.set(labels: label_set_for(labels), val: value, exemplar: exemplar)
       end
 
       # Increments Gauge value by 1 or adds the given value to the Gauge.
       # (The value can be negative, resulting in a decrease of the Gauge.)
       def increment(by: 1, labels: {}, exemplar: nil)
         label_set = label_set_for(labels)
-        @store.increment(labels: label_set, by: by, exemplar: nil)
+        @store.increment(labels: label_set, by: by, exemplar: exemplar)
       end
 
       # Decrements Gauge value by 1 or subtracts the given value from the Gauge.
       # (The value can be negative, resulting in a increase of the Gauge.)
       def decrement(by: 1, labels: {}, exemplar: nil)
         label_set = label_set_for(labels)
-        @store.increment(labels: label_set, by: -by, exemplar: nil)
+        @store.increment(labels: label_set, by: -by, exemplar: exemplar)
       end
     end
   end

@@ -114,42 +114,36 @@ describe Prometheus::Client::Formats::OpenMetrics do
         blue_created = counter_with_exemplars.values(with_exemplars: true)[{:umlauts=>"Björn", :utf=>"佖佥", :code=>"blue"}].created
         expect(lines).to include("counter_with_exemplars_created{umlauts=\"Björn\",utf=\"佖佥\",code=\"blue\"} #{blue_created}")
       end
-
-      it "A MetricPoint in a Metric's Counter's Total MAY reset to 0. If present, the corresponding Created time MUST also be set to the timestamp of the reset."
     end
 
     describe "gauge" do
-      let :gauge_without_ts do
-        bar = registry.gauge(:gauge_without_ts,
+      let :gauge_with_exemplar do
+        bar = registry.gauge(:gauge_with_exemplar,
                              docstring: "bar description\nwith newline",
                              labels: [:status, :code])
-        bar.set(15, labels: { status: 'success', code: 'pink'})
+        bar.set(15, labels: { status: 'success', code: 'pink'}, exemplar: Prometheus::Client::Exemplar.new(labels: {trace_id: 23456}, timestamp: 2000))
+        bar.set(17, labels: { status: 'success', code: 'pink'})
 
         bar
       end
 
       it "generates a metric description" do
-        writer = Prometheus::Client::Formats::OpenMetrics::Writer.new(gauge_without_ts)
+        writer = Prometheus::Client::Formats::OpenMetrics::Writer.new(gauge_with_exemplar)
 
         lines = writer.write.split("\n")
 
-        expect(lines).to include("# TYPE gauge_without_ts gauge")
-        expect(lines).to include("# UNIT gauge_without_ts hotdogs")
-        expect(lines).to include("# HELP gauge_without_ts bar description\\nwith newline")
+        expect(lines).to include("# TYPE gauge_with_exemplar gauge")
+        expect(lines).to include("# UNIT gauge_with_exemplar hotdogs")
+        expect(lines).to include("# HELP gauge_with_exemplar bar description\\nwith newline")
       end
 
       it "generates a metric without a timestamp" do
-        writer = Prometheus::Client::Formats::OpenMetrics::Writer.new(gauge_without_ts)
+        writer = Prometheus::Client::Formats::OpenMetrics::Writer.new(gauge_with_exemplar)
 
         lines = writer.write.split("\n")
 
-        expect(lines).to include("gauge_without_ts{status=\"success\",code=\"pink\"} 15.0")
+        expect(lines).to include("gauge_with_exemplar{status=\"success\",code=\"pink\"} 17.0 # {trace_id=\"23456\"} 15.0 2000")
       end
-
-      it "generates a metric with a timestamp"
-      it "generates a metric with an exemplar"
-      
-      it "A MetricPoint in a Metric with the type gauge MUST have a single value.  I am pretty sure this means a single metric per label permutation per gauge but not 100% (JH)"
     end
 
     describe "histogram" do
