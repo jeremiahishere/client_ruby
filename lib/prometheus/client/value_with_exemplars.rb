@@ -28,7 +28,7 @@ module Prometheus
         @exemplars.most_recent
       end
 
-      def set(value:, exemplar:)
+      def set(value:, exemplar: nil)
         @value = value.to_f
         if exemplar
           exemplar.value = @value # not convinced this line goes in this file
@@ -38,7 +38,7 @@ module Prometheus
         @value
       end
 
-      def increment(by: 1, exemplar:)
+      def increment(by: 1, exemplar: nil)
         @value += by
         if exemplar
           exemplar.value = @value # not convinced this line goes in this file

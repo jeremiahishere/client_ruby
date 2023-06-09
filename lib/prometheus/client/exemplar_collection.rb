@@ -3,7 +3,7 @@
 module Prometheus
   module Client
     class ExemplarCollection
-      extend Enumerable
+      include Enumerable
 
       # store the exemplars attached to a metric + label set
       def initialize
@@ -42,13 +42,18 @@ module Prometheus
         end
       end
 
+      def size
+        @exemplar_count
+      end
+
       private
       
       def cleanup_if_necessary
-        @exemplar_count += 1
-        if @exemplar_count > @max_exemplars || @collection.keys.size > @max_timestamps
+        if @exemplar_count >= @max_exemplars || @collection.keys.size >= @max_timestamps
           @exemplar_count -= @collection.delete(first_key)&.size
         end
+
+        @exemplar_count += 1
       end
       
       def first_key

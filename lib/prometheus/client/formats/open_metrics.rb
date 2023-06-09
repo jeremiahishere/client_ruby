@@ -78,6 +78,7 @@ module Prometheus
 
               output << metric_line("#{name}_sum", label_set, value["sum"])
               output << metric_line("#{name}_count", label_set, value["+Inf"])
+              # output << metric_line("#{name}_created", label_set, created)
             end
 
             output

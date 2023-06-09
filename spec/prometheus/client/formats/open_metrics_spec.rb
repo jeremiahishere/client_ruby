@@ -15,21 +15,6 @@ describe Prometheus::Client::Formats::OpenMetrics do
 
   let(:registry) { Prometheus::Client::Registry.new }
 
-  it "created should not have any labels"
-  it "If a unit is specified it MUST be provided in a UNIT metadata line. In addition, an underscore and the unit MUST be the suffix of the MetricFamily name."
-  it "If more than one MetricPoint is exposed for a Metric, the ordering should be by label permutation, then by oldest to newest timestamp"
-    # for example
-    # # TYPE foo_seconds summary
-    # # UNIT foo_seconds seconds
-    # foo_seconds_count{a="bb"} 0 123
-    # foo_seconds_sum{a="bb"} 0 123
-    # foo_seconds_count{a="bb"} 0 456
-    # foo_seconds_sum{a="bb"} 0 456
-    # foo_seconds_count{a="ccc"} 0 123
-    # foo_seconds_sum{a="ccc"} 0 123
-    # foo_seconds_count{a="ccc"} 0 456
-    # foo_seconds_sum{a="ccc"} 0 456
-
   describe "metric writers" do
     describe "counter" do
       let(:counter_metric) do
