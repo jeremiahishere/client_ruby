@@ -9,7 +9,7 @@ module Prometheus
   module Client
     # Metric
     class Metric
-      attr_reader :name, :docstring, :labels, :preset_labels
+      attr_reader :name, :docstring, :labels, :preset_labels, :unit
 
       def initialize(name,
                      docstring:,
@@ -30,6 +30,7 @@ module Prometheus
         @name = name
         @docstring = docstring
         @preset_labels = stringify_values(preset_labels)
+        @unit = nil # not fully supported yet
 
         @all_labels_preset = false
         if preset_labels.keys.length == labels.length

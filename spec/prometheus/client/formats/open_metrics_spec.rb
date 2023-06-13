@@ -16,6 +16,8 @@ describe Prometheus::Client::Formats::OpenMetrics do
   let(:registry) { Prometheus::Client::Registry.new }
 
   describe "metric writers" do
+    it "fully supports unit including comment string and forcing a metric name change based on the unit name"
+
     describe "counter" do
       let(:counter_metric) do
         counter_metric = registry.counter(:counter_metric,
@@ -35,7 +37,7 @@ describe Prometheus::Client::Formats::OpenMetrics do
         lines = writer.write.split("\n")
 
         expect(lines).to include("# TYPE counter_metric counter")
-        expect(lines).to include("# UNIT counter_metric hotdogs")
+        # expect(lines).to include("# UNIT counter_metric hotdogs")
         expect(lines).to include("# HELP counter_metric foo description")
       end
 
@@ -118,7 +120,7 @@ describe Prometheus::Client::Formats::OpenMetrics do
         lines = writer.write.split("\n")
 
         expect(lines).to include("# TYPE gauge_with_exemplar gauge")
-        expect(lines).to include("# UNIT gauge_with_exemplar hotdogs")
+        # expect(lines).to include("# UNIT gauge_with_exemplar hotdogs")
         expect(lines).to include("# HELP gauge_with_exemplar bar description\\nwith newline")
       end
 
@@ -150,7 +152,7 @@ describe Prometheus::Client::Formats::OpenMetrics do
         lines = writer.write.split("\n")
 
         expect(lines).to include("# TYPE histogram_without_ts histogram")
-        expect(lines).to include("# UNIT histogram_without_ts hotdogs")
+        # expect(lines).to include("# UNIT histogram_without_ts hotdogs")
         expect(lines).to include("# HELP histogram_without_ts xuq description")
       end
 
@@ -177,65 +179,80 @@ describe Prometheus::Client::Formats::OpenMetrics do
       it "generates a sum that equals the sum of all measured event values"
       it "if there is a negative valued bucket, there should be no sum metric"
       it "is not clear if we should print the bucket multiple times with different timestamps to expose multiple exemplars"
-      
-      it "A Histogram's Metric's LabelSet MUST NOT have a 'le' label name."
-      it "Bucket values MAY have exemplars. Buckets are cumulative to allow monitoring systems to drop any non-+Inf bucket for performance/anti-denial-of-service reasons in a way that loses granularity but is still a valid Histogram."
-      it "Each bucket covers the values less and or equal to it, and the value of the exemplar MUST be within this range. Exemplars SHOULD be put into the bucket with the highest value. A bucket MUST NOT have more than one exemplar."
+      it "Bucket values MAY have exemplars.  It is up to us on which bucket gets which exemplar other than the exemplar falling within the bucket range.  Docs say exemplars SHOULD be put into the bucket with the highest value."
     end
 
-    describe "gaugehistogram" do
-      it "generates a metric description"
-      it "generates a metric without a timestamp"
-      it "generates a metric with a timestamp"
+    describe "summary" do
+      let(:summary_metric) do
+        summary_metric = registry.summary(:summary_metric,
+                                          docstring: 'qux description',
+                                          labels: [:for, :code],
+                                          preset_labels: { for: 'sake', code: '1' })
+        92.times { summary_metric.observe(0) }
+        summary_metric.observe(1243.21)
+
+        summary_metric
+      end
+
+      it "generates a metric description" do
+        writer = Prometheus::Client::Formats::OpenMetrics::Writer.new(summary_metric)
+
+        lines = writer.write.split("\n")
+
+        expect(lines).to include("# TYPE summary_metric summary")
+        expect(lines).to include("# HELP summary_metric qux description")
+      end
+
+      it "generates a metric" do
+        writer = Prometheus::Client::Formats::OpenMetrics::Writer.new(summary_metric)
+
+        lines = writer.write.split("\n")
+
+        expect(lines).to include("summary_metric_sum{for=\"sake\",code=\"1\"} 1243.21")
+        expect(lines).to include("summary_metric_count{for=\"sake\",code=\"1\"} 93.0")
+      end
+
       it "generates a metric with an exemplar"
+      it "generates _created metric point"
     end
 
-    describe "stateset" do
-      it "generates a metric description"
-      it "generates a metric without a timestamp"
-      it "generates a metric with a timestamp"
-      it "generates a metric with an exemplar"
+    # we don't support these types right now so I am punting for now
 
-      it "A point of a StateSet metric MAY contain multiple states and MUST contain one boolean per State. States have a name which are Strings."
-      it "A StateSet Metric's LabelSet MUST NOT have a label name which is the same as the name of its MetricFamily."
-      it "If encoded as a StateSet, ENUMs MUST have exactly one Boolean which is true within a MetricPoint."
-      it "MetricFamilies of type StateSets MUST have an empty Unit string."
-    end
-
-    # describe "summary" do
-    #   let(:registry.summary(:summary)) do
-    #     counter_metric = registry.counter(:counter_metric,
-    #                            docstring: 'foo description',
-    #                            labels: [:umlauts, :utf, :code],
-    #                            preset_labels: {umlauts: 'Björn', utf: '佖佥'})
-    #     counter_metric.increment(labels: { code: 'red'}, by: 42)
-    #     counter_metric.increment(labels: { code: 'green'}, by: 3.14E42)
-    #     counter_metric.increment(labels: { code: 'blue'}, by: 1.23e-45)
-    #
-    #     counter_metric
-    #   end
+    # describe "gaugehistogram" do
     #   it "generates a metric description"
     #   it "generates a metric without a timestamp"
     #   it "generates a metric with a timestamp"
     #   it "generates a metric with an exemplar"
     # end
 
-    describe "info" do
-      it "generates a metric description"
-      it "generates a metric without a timestamp"
-      it "generates a metric with a timestamp"
-      it "generates a metric with an exemplar"
+    # describe "stateset" do
+    #   it "generates a metric description"
+    #   it "generates a metric without a timestamp"
+    #   it "generates a metric with a timestamp"
+    #   it "generates a metric with an exemplar"
+    #
+    #   it "A point of a StateSet metric MAY contain multiple states and MUST contain one boolean per State. States have a name which are Strings."
+    #   it "A StateSet Metric's LabelSet MUST NOT have a label name which is the same as the name of its MetricFamily."
+    #   it "If encoded as a StateSet, ENUMs MUST have exactly one Boolean which is true within a MetricPoint."
+    #   it "MetricFamilies of type StateSets MUST have an empty Unit string."
+    # end
 
-      it "A MetricPoint of an Info Metric contains a LabelSet. An Info MetricPoint's LabelSet MUST NOT have a label name which is the same as the name of a label of the LabelSet of its Metric."
-      it "Info MAY be used to encode ENUMs whose values do not change over time, such as the type of a network interface."
-      it "MetricFamilies of type Info MUST have an empty Unit string."
-    end
+    # describe "info" do
+    #   it "generates a metric description"
+    #   it "generates a metric without a timestamp"
+    #   it "generates a metric with a timestamp"
+    #   it "generates a metric with an exemplar"
+    #
+    #   it "A MetricPoint of an Info Metric contains a LabelSet. An Info MetricPoint's LabelSet MUST NOT have a label name which is the same as the name of a label of the LabelSet of its Metric."
+    #   it "Info MAY be used to encode ENUMs whose values do not change over time, such as the type of a network interface."
+    #   it "MetricFamilies of type Info MUST have an empty Unit string."
+    # end
 
-    describe "unknown" do
-      it "generates a metric description"
-      it "generates a metric without a timestamp"
-      it "generates a metric with a timestamp"
-      it "generates a metric with an exemplar"
-    end
+    # describe "unknown" do
+    #   it "generates a metric description"
+    #   it "generates a metric without a timestamp"
+    #   it "generates a metric with a timestamp"
+    #   it "generates a metric with an exemplar"
+    # end
   end
 end

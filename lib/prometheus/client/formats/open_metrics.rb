@@ -36,7 +36,7 @@ module Prometheus
           end
 
           def unit
-            metric.unit rescue "hotdogs"
+            metric&.unit || nil
           end
 
           # the spec has a weird conversion with hard coded constants
@@ -55,6 +55,8 @@ module Prometheus
 
             if type == :histogram
               output << histogram
+            elsif type == :summary
+              output << summary
             elsif type == :counter
               output << counter
             else # if [:gauge].include?(type)
@@ -78,6 +80,20 @@ module Prometheus
 
               output << metric_line("#{name}_sum", label_set, value["sum"])
               output << metric_line("#{name}_count", label_set, value["+Inf"])
+              # created is dependent on the exemplar working
+              # output << metric_line("#{name}_created", label_set, created)
+            end
+
+            output
+          end
+
+          def summary
+            output = []
+
+            metric.values.collect do |label_set, value|
+              output << metric_line("#{name}_sum", label_set, value["sum"])
+              output << metric_line("#{name}_count", label_set, value["count"])
+              # created is dependent on the exemplar working
               # output << metric_line("#{name}_created", label_set, created)
             end
 
@@ -140,11 +156,12 @@ module Prometheus
           end
 
           def description
-            [
-              "# TYPE #{name} #{type}",
-              "# UNIT #{name} #{unit}",
-              "# HELP #{name} #{escape(docstring, :doc)}"
-            ]
+            output = []
+            output << "# TYPE #{name} #{type}"
+            output << "# UNIT #{name} #{unit}" if unit
+            output << "# HELP #{name} #{escape(docstring, :doc)}"
+
+            output
           end
 
           def write
