@@ -1,3 +1,8 @@
+# no idea why this is reuired but giving up for now
+require 'prometheus/client/exemplar'
+require 'prometheus/client/exemplar_collection'
+require 'prometheus/client/value_with_exemplars'
+
 module Prometheus
   module Client
     module DataStores
@@ -24,7 +29,7 @@ module Prometheus
 
         class MetricStore
           def initialize
-            @internal_store = Hash.new { |hash, key| hash[key] = ValueWithExemplars.new }
+            @internal_store = Hash.new { |hash, key| hash[key] = Prometheus::Client::ValueWithExemplars.new }
             @lock = Monitor.new
           end
 

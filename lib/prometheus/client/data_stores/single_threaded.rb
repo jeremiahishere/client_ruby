@@ -29,7 +29,7 @@ module Prometheus
 
         class MetricStore
           def initialize
-            @internal_store = Hash.new { |hash, key| hash[key] = ValueWithExemplars.new }
+            @internal_store = Hash.new { |hash, key| hash[key] = Prometheus::Client::ValueWithExemplars.new }
           end
 
           def synchronize
