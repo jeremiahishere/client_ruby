@@ -9,7 +9,8 @@ module Prometheus
     #
     # no idea how this is going to work with histograms
     class ValueWithExemplars
-      attr_reader :value, :exemplar, :created
+      # changed from reader to accessor to make object setup easier for summaries
+      attr_accessor :value, :exemplars, :created
 
       def initialize
         @exemplars = ExemplarCollection.new

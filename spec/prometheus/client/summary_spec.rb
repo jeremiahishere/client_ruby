@@ -79,10 +79,8 @@ describe Prometheus::Client::Summary do
       summary.observe(3, labels: { status: 'bar' })
       summary.observe(5, labels: { status: 'foo' })
 
-      expect(summary.values).to eql(
-        { status: 'bar' } => { "count" => 1.0, "sum" => 3.0 },
-        { status: 'foo' } => { "count" => 1.0, "sum" => 5.0 },
-      )
+      expect(summary.values[{ status: 'bar' }].value).to eql({ "count" => 1.0, "sum" => 3.0 })
+      expect(summary.values[{ status: 'foo' }].value).to eql({ "count" => 1.0, "sum" => 5.0 })
     end
   end
 
@@ -96,18 +94,14 @@ describe Prometheus::Client::Summary do
         summary.init_label_set(status: 'bar')
         summary.init_label_set(status: 'foo')
 
-        expect(summary.values).to eql(
-          { status: 'bar' } => { "count" => 0.0, "sum" => 0.0 },
-          { status: 'foo' } => { "count" => 0.0, "sum" => 0.0 },
-        )
+        expect(summary.values[{ status: 'bar' }].value).to eql({ "count" => 0.0, "sum" => 0.0 })
+        expect(summary.values[{ status: 'foo' }].value).to eql({ "count" => 0.0, "sum" => 0.0 })
       end
     end
 
     context "without labels" do
       it 'automatically initializes the metric' do
-        expect(summary.values).to eql(
-          {} => { "count" => 0.0, "sum" => 0.0 },
-        )
+        expect(summary.values[{}].value).to eql({ "count" => 0.0, "sum" => 0.0 })
       end
     end
   end

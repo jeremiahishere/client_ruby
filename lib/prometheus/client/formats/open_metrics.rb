@@ -90,11 +90,10 @@ module Prometheus
           def summary
             output = []
 
-            metric.values.collect do |label_set, value|
-              output << metric_line("#{name}_sum", label_set, value["sum"])
-              output << metric_line("#{name}_count", label_set, value["count"])
-              # created is dependent on the exemplar working
-              # output << metric_line("#{name}_created", label_set, created)
+            metric.values.collect do |label_set, vwe|
+              output << metric_line("#{name}_sum", label_set, vwe.value["sum"], vwe.most_recent_exemplar)
+              output << metric_line("#{name}_count", label_set, vwe.value["count"], vwe.most_recent_exemplar)
+              output << metric_line("#{name}_created", label_set, vwe.created)
             end
 
             output

@@ -51,8 +51,8 @@ module Prometheus
 
           def summary(name, set, value)
             l = labels(set)
-            yield metric("#{name}_sum", l, value["sum"])
-            yield metric("#{name}_count", l, value["count"])
+            yield metric("#{name}_sum", l, value.value["sum"])
+            yield metric("#{name}_count", l, value.value["count"])
           end
 
           def histogram(name, set, value)

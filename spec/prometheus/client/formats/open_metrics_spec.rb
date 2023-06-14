@@ -93,7 +93,6 @@ describe Prometheus::Client::Formats::OpenMetrics do
         writer = Prometheus::Client::Formats::OpenMetrics::Writer.new(counter_with_exemplars)
 
         lines = writer.write.split("\n")
-        puts lines
 
         # this is hard to test
         red_created = counter_with_exemplars.values(with_exemplars: true)[{:umlauts=>"Björn", :utf=>"佖佥", :code=>"red"}].created
@@ -188,7 +187,10 @@ describe Prometheus::Client::Formats::OpenMetrics do
                                           docstring: 'qux description',
                                           labels: [:for, :code],
                                           preset_labels: { for: 'sake', code: '1' })
-        92.times { summary_metric.observe(0) }
+        80.times { summary_metric.observe(0) }
+        summary_metric.observe(0, exemplar: Prometheus::Client::Exemplar.new(labels: {trace_id: 12345}, timestamp: 1000))
+        10.times { summary_metric.observe(0) }
+        summary_metric.observe(0, exemplar: Prometheus::Client::Exemplar.new(labels: {trace_id: 23456}, timestamp: 2000))
         summary_metric.observe(1243.21)
 
         summary_metric
@@ -203,17 +205,23 @@ describe Prometheus::Client::Formats::OpenMetrics do
         expect(lines).to include("# HELP summary_metric qux description")
       end
 
-      it "generates a metric" do
+      it "generates metrics with exemplars" do
         writer = Prometheus::Client::Formats::OpenMetrics::Writer.new(summary_metric)
 
         lines = writer.write.split("\n")
 
-        expect(lines).to include("summary_metric_sum{for=\"sake\",code=\"1\"} 1243.21")
-        expect(lines).to include("summary_metric_count{for=\"sake\",code=\"1\"} 93.0")
+        expect(lines).to include("summary_metric_sum{for=\"sake\",code=\"1\"} 1243.21 # {trace_id=\"23456\"} 0.0 2000")
+        expect(lines).to include("summary_metric_count{for=\"sake\",code=\"1\"} 93.0 # {trace_id=\"23456\"} 0.0 2000")
       end
 
-      it "generates a metric with an exemplar"
-      it "generates _created metric point"
+      it "generates _created metric point" do
+        writer = Prometheus::Client::Formats::OpenMetrics::Writer.new(summary_metric)
+
+        lines = writer.write.split("\n")
+
+        # can't test against the timestamp
+        expect(lines).to include(match /summary_metric_created{for="sake",code="1"}/)
+      end
     end
 
     # we don't support these types right now so I am punting for now
