@@ -16,10 +16,10 @@ module Prometheus
 
           registry.metrics.each do |metric|
             # generate metric and put it in lines
-            lines << Writer.new(metric).metrics_to_a
+            lines << Writer.new(metric).write
           end
 
-          (lines << nil).join(DELIMITER)
+          (lines.flatten.compact << nil).join(DELIMITER)
         end
 
         class Writer
@@ -165,7 +165,7 @@ module Prometheus
           end
 
           def write
-            (description + metrics_to_a).join("\n")
+            (description + metrics_to_a).flatten.join(Prometheus::Client::Formats::OpenMetrics::DELIMITER)
           end
 
         end

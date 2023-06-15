@@ -26,13 +26,16 @@ describe Prometheus::Middleware::Exporter do
   end
 
   context 'when requesting /metrics' do
-    text = Prometheus::Client::Formats::Text
+    # I am pretty annoyed at this hard coded format right now
+    # it should match the list of formats in the exporter and loop over the available ones
+    text = Prometheus::Client::Formats::OpenMetrics
 
     shared_examples 'ok' do |headers, fmt|
       it "responds with 200 OK and content-type #{fmt::CONTENT_TYPE}" do
         registry.counter(:foo, docstring: 'foo counter').increment(by: 9)
 
         get '/metrics', nil, headers
+        # require "pry"; binding.pry
 
         expect(last_response.status).to eql(200)
         expect(last_response.headers['content-type']).to eql(fmt::CONTENT_TYPE)
@@ -69,7 +72,7 @@ describe Prometheus::Middleware::Exporter do
     end
 
     context 'when client uses different white spaces in Accept header' do
-      accept = 'text/plain;q=1.0  ; version=0.0.4'
+      accept = 'text/plain;q=1.0  ; version=0.0.1' # why is this version hard coded?
 
       include_examples 'ok', { 'HTTP_ACCEPT' => accept }, text
     end

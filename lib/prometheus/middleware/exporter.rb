@@ -15,6 +15,8 @@ module Prometheus
     class Exporter
       attr_reader :app, :registry, :path
 
+      # this file does not support multiple formats
+      # I am officially giving up
       FORMATS  = [Client::Formats::OpenMetrics].freeze
       FALLBACK = Client::Formats::OpenMetrics
 
@@ -78,7 +80,7 @@ module Prometheus
         [
           406,
           { 'content-type' => 'text/plain' },
-          ["Supported media types: #{types.join(', ')}"],
+          ["Supported media types: #{types.uniq.join(', ')}"],
         ]
       end
 
