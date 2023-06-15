@@ -126,7 +126,7 @@ module Prometheus
           def metric_line(name, label_set, value, exemplar = nil)
             output = "#{name}#{labels(label_set)} #{value}"
             output += " #{timestamp}" if timestamp
-            output += " # #{labels(exemplar.labels)} #{exemplar.value} #{exemplar.timestamp}" if exemplar
+            output += " # #{labels(exemplar.labels)} #{exemplar.value} #{exemplar.timestamp}" if exemplar && !exemplar.empty?
 
             output
           end

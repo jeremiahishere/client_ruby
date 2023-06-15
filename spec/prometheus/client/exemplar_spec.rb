@@ -14,4 +14,13 @@ describe Prometheus::Client::Exemplar do
 
     expect(e.timestamp).to be <= Time.now.to_i
   end
+
+  it "is empty" do
+    e = described_class.new
+
+    expect(e).to be_empty
+
+    e.value = 5
+    expect(e).not_to be_empty
+  end
 end

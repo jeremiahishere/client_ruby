@@ -6,7 +6,8 @@ module Prometheus
     # Store a snapshot of metric data including an extra set of kv pairs for a specific moment in
     # time and specific moment of code execution.
     #
-    # Value is expected to be set after the exemplar is initialized.
+    # Value is expected to be set after the exemplar is initialized.  Exemplars without a value will
+    # not be exported.
     class Exemplar
       # The kv pairs that make up the unique information in the exemplar.
       #
@@ -23,6 +24,10 @@ module Prometheus
       def initialize(labels: {}, timestamp: nil)
         @labels = labels
         @timestamp = timestamp || Time.now.to_i
+      end
+
+      def empty?
+        value.nil?
       end
     end
   end

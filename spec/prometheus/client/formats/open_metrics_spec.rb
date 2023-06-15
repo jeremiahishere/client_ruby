@@ -100,6 +100,8 @@ describe Prometheus::Client::Formats::OpenMetrics do
         blue_created = counter_with_exemplars.values(with_exemplars: true)[{:umlauts=>"Björn", :utf=>"佖佥", :code=>"blue"}].created
         expect(lines).to include("counter_with_exemplars_created{umlauts=\"Björn\",utf=\"佖佥\",code=\"blue\"} #{blue_created}")
       end
+
+      it "does not write an exemplar with no value"
     end
 
     describe "gauge" do
