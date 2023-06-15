@@ -8,6 +8,7 @@ module Prometheus
         MEDIA_TYPE   = 'text/plain'.freeze
         VERSION      = '0.0.1'.freeze
         CONTENT_TYPE = "#{MEDIA_TYPE}; version=#{VERSION}".freeze
+        DELIMITER = "\n".freeze
 
         # public interface to generate out the /metrics payload
         def self.marshal(registry)
@@ -15,7 +16,7 @@ module Prometheus
 
           registry.metrics.each do |metric|
             # generate metric and put it in lines
-            lines << Writer.new(metric).to_open_metrics
+            lines << Writer.new(metric).metrics_to_a
           end
 
           (lines << nil).join(DELIMITER)
