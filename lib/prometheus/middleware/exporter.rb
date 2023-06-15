@@ -15,8 +15,8 @@ module Prometheus
     class Exporter
       attr_reader :app, :registry, :path
 
-      FORMATS  = [Client::Formats::Text].freeze
-      FALLBACK = Client::Formats::Text
+      FORMATS  = [Client::Formats::OpenMetrics].freeze
+      FALLBACK = Client::Formats::OpenMetrics
 
       def initialize(app, options = {})
         @app = app
