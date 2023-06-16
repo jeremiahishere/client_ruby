@@ -5,10 +5,11 @@ module Prometheus
     module Formats
       module OpenMetrics
         # used by the middleware to determine if this format works for the request
-        MEDIA_TYPE   = 'text/plain'.freeze
-        VERSION      = '0.0.1'.freeze
-        CONTENT_TYPE = "#{MEDIA_TYPE}; version=#{VERSION}".freeze
+        MEDIA_TYPE   = 'application/openmetrics-text'.freeze
+        VERSION      = '1.0.0'.freeze
+        CONTENT_TYPE = "#{MEDIA_TYPE}; version=#{VERSION}; charset=utf-8".freeze
         DELIMITER = "\n".freeze
+        EOF = "# EOF\n"
 
         # public interface to generate out the /metrics payload
         def self.marshal(registry)
@@ -19,7 +20,7 @@ module Prometheus
             lines << Writer.new(metric).write
           end
 
-          (lines.flatten.compact << nil).join(DELIMITER)
+          (lines.flatten.compact << EOF).join(DELIMITER)
         end
 
         class Writer
