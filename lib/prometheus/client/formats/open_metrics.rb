@@ -29,7 +29,7 @@ module Prometheus
           end
 
           def name
-            metric.name
+            metric.name.to_s
           end
 
           def docstring
@@ -109,6 +109,10 @@ module Prometheus
               value = value_with_exemplars.value
               exemplar = value_with_exemplars.most_recent_exemplar
               created = value_with_exemplars.created
+
+              # hack in support to remove _total from all of our counters because _total is now a
+              # reserved word
+              metric_name = name.gsub(/_total$/, "")
 
               output << metric_line(name, label_set, value, exemplar)
               output << metric_line("#{name}_created", label_set, created)
