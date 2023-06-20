@@ -2,12 +2,14 @@
 
 require 'thread'
 require 'prometheus/client/label_set_validator'
+require 'prometheus/client/exemplar'
+require 'prometheus/client/exemplar_collection'
 
 module Prometheus
   module Client
     # Metric
     class Metric
-      attr_reader :name, :docstring, :labels, :preset_labels
+      attr_reader :name, :docstring, :labels, :preset_labels, :unit
 
       def initialize(name,
                      docstring:,
@@ -28,6 +30,7 @@ module Prometheus
         @name = name
         @docstring = docstring
         @preset_labels = stringify_values(preset_labels)
+        @unit = nil # not fully supported yet
 
         @all_labels_preset = false
         if preset_labels.keys.length == labels.length
@@ -76,8 +79,8 @@ module Prometheus
       end
 
       # Returns all label sets with their values
-      def values
-        @store.all_values
+      def values(with_exemplars: false)
+        @store.all_values(with_exemplars: with_exemplars)
       end
 
       private

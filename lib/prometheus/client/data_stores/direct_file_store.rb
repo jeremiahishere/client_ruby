@@ -99,13 +99,13 @@ module Prometheus
             end
           end
 
-          def set(labels:, val:)
+          def set(labels:, val:, exemplar: nil)
             in_process_sync do
               internal_store.write_value(store_key(labels), val.to_f)
             end
           end
 
-          def increment(labels:, by: 1)
+          def increment(labels:, by: 1, exemplar: nil)
             if @values_aggregation_mode == DirectFileStore::MOST_RECENT
               raise InvalidStoreSettingsError,
                     "The :most_recent aggregation does not support the use of increment"\
@@ -118,13 +118,13 @@ module Prometheus
             end
           end
 
-          def get(labels:)
+          def get(labels:, with_exemplars: false)
             in_process_sync do
               internal_store.read_value(store_key(labels))
             end
           end
 
-          def all_values
+          def all_values(with_exemplars: false)
             stores_data = Hash.new{ |hash, key| hash[key] = [] }
 
             # There's no need to call `synchronize` here. We're opening a second handle to

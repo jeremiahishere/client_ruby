@@ -2,6 +2,7 @@
 
 require 'prometheus/client'
 require 'prometheus/client/formats/text'
+require 'prometheus/client/formats/open_metrics'
 
 module Prometheus
   module Middleware
@@ -14,8 +15,10 @@ module Prometheus
     class Exporter
       attr_reader :app, :registry, :path
 
-      FORMATS  = [Client::Formats::Text].freeze
-      FALLBACK = Client::Formats::Text
+      # this file does not support multiple formats
+      # I am officially giving up
+      FORMATS  = [Client::Formats::OpenMetrics].freeze
+      FALLBACK = Client::Formats::OpenMetrics
 
       def initialize(app, options = {})
         @app = app
@@ -77,7 +80,7 @@ module Prometheus
         [
           406,
           { 'content-type' => 'text/plain' },
-          ["Supported media types: #{types.join(', ')}"],
+          ["Supported media types: #{types.uniq.join(', ')}"],
         ]
       end
 

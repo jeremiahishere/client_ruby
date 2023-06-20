@@ -17,12 +17,12 @@ module Prometheus
       # in the sum of observations. See
       # https://prometheus.io/docs/practices/histograms/#count-and-sum-of-observations
       # for details.
-      def observe(value, labels: {})
+      def observe(value, labels: {}, exemplar: nil)
         base_label_set = label_set_for(labels)
 
         @store.synchronize do
-          @store.increment(labels: base_label_set.merge(quantile: "count"), by: 1)
-          @store.increment(labels: base_label_set.merge(quantile: "sum"), by: value)
+          @store.increment(labels: base_label_set.merge(quantile: "count"), by: 1, exemplar: exemplar)
+          @store.increment(labels: base_label_set.merge(quantile: "sum"), by: value, exemplar: exemplar)
         end
       end
 
@@ -40,13 +40,36 @@ module Prometheus
       end
 
       # Returns all label sets with their values expressed as hashes with their sum/count
+      #
+      # Converts from
+      # {
+      #   {<labels>, :quantile=>"count"} => <value>,
+      #   {<labels>, :quantile=>"sum"} => <value>
+      # }
+      # to
+      # {
+      #   <labels>: {count: <value>, sum: <value>}
+      # }
+      #
+      # This isn't going to work long term because it isn't possible to differentiate between
+      # exemplars whose value is based on the count and exemplars whose value is based on the sum.
+      # For now, it is random/unusable.
       def values
-        values = @store.all_values
+        values = @store.all_values(with_exemplars: true)
 
-        values.each_with_object({}) do |(label_set, v), acc|
+        values.each_with_object({}) do |(label_set, value_with_exemplars), acc|
           actual_label_set = label_set.reject{|l| l == :quantile }
-          acc[actual_label_set] ||= { "count" => 0.0, "sum" => 0.0 }
-          acc[actual_label_set][label_set[:quantile]] = v
+
+          if acc.has_key? actual_label_set
+            acc[actual_label_set].value[label_set[:quantile]] = value_with_exemplars.value
+          else
+            new_vwe = ValueWithExemplars.new
+            value = { "count" => 0.0, "sum" => 0.0 }.merge({ label_set[:quantile] => value_with_exemplars.value })
+            new_vwe.value = value
+            new_vwe.exemplars = value_with_exemplars.exemplars # only copy over the exemplars once because both quantiles have the same exemplars
+
+            acc[actual_label_set] = new_vwe
+          end
         end
       end
 

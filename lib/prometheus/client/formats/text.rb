@@ -6,7 +6,7 @@ module Prometheus
       # Text format is human readable mainly used for manual inspection.
       module Text
         MEDIA_TYPE   = 'text/plain'.freeze
-        VERSION      = '0.0.4'.freeze
+        VERSION      = '0.0.1'.freeze
         CONTENT_TYPE = "#{MEDIA_TYPE}; version=#{VERSION}".freeze
 
         METRIC_LINE = '%s%s %s'.freeze
@@ -51,8 +51,8 @@ module Prometheus
 
           def summary(name, set, value)
             l = labels(set)
-            yield metric("#{name}_sum", l, value["sum"])
-            yield metric("#{name}_count", l, value["count"])
+            yield metric("#{name}_sum", l, value.value["sum"])
+            yield metric("#{name}_count", l, value.value["count"])
           end
 
           def histogram(name, set, value)

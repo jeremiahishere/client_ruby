@@ -1,3 +1,7 @@
+require "prometheus/client/value_with_exemplars"
+require "prometheus/client/exemplar_collection"
+require "prometheus/client/exemplar"
+
 module Prometheus
   module Client
     module DataStores
@@ -25,27 +29,41 @@ module Prometheus
 
         class MetricStore
           def initialize
-            @internal_store = Hash.new { |hash, key| hash[key] = 0.0 }
+            @internal_store = Hash.new { |hash, key| hash[key] = Prometheus::Client::ValueWithExemplars.new }
           end
 
           def synchronize
             yield
           end
 
-          def set(labels:, val:)
-            @internal_store[labels] = val.to_f
+          def set(labels:, val:, exemplar: nil)
+            @internal_store[labels].set(value: val, exemplar: exemplar)
           end
 
-          def increment(labels:, by: 1)
-            @internal_store[labels] += by
+          def increment(labels:, by: 1, exemplar: nil)
+            @internal_store[labels].increment(by: by, exemplar: exemplar)
           end
 
-          def get(labels:)
-            @internal_store[labels]
+          def get(labels:, with_exemplars: false)
+            if with_exemplars
+              @internal_store[labels]
+            else
+              @internal_store[labels].value
+            end
           end
 
-          def all_values
-            @internal_store.dup
+          def all_values(with_exemplars: false)
+            if with_exemplars
+              @internal_store.dup
+            else
+              # this mess is just for backwards compatibility
+              output = Hash.new { |hash, key| hash[key] = 0.0 }
+              @internal_store.keys.each do |k|
+                output[k] = @internal_store[k].value
+              end
+
+              output
+            end
           end
         end
 

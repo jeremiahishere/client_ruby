@@ -10,11 +10,11 @@ module Prometheus
         :counter
       end
 
-      def increment(by: 1, labels: {})
+      def increment(by: 1, labels: {}, exemplar: nil)
         raise ArgumentError, 'increment must be a non-negative number' if by < 0
 
         label_set = label_set_for(labels)
-        @store.increment(labels: label_set, by: by)
+        @store.increment(labels: label_set, by: by, exemplar: exemplar)
       end
     end
   end
