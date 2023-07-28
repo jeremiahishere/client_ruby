@@ -99,13 +99,13 @@ module Prometheus
             end
           end
 
-          def set(labels:, val:)
+          def set(labels:, val:, exemplar_labels: {}) # no exemplar support, this change to make tests pass
             in_process_sync do
               internal_store.write_value(store_key(labels), val.to_f)
             end
           end
 
-          def increment(labels:, by: 1)
+          def increment(labels:, by: 1, exemplar_labels: {}) # no exemplar support, this change to make tests pass
             if @values_aggregation_mode == DirectFileStore::MOST_RECENT
               raise InvalidStoreSettingsError,
                     "The :most_recent aggregation does not support the use of increment"\
@@ -263,6 +263,19 @@ module Prometheus
             end
           end
 
+          # I completely punted on this.  Here is a sketch of a solution with no promises that this is a good idea
+          # 
+          # Instead of storing a single value, store the following four values for each labelset on the metric:
+          # - value: 8 byte float
+          # - exemplar label: 140 bytes (fixed width)
+          #   128 bytes of label data + some amount of buffer for control characters generated in store_key (& = etc)
+          # - exemplar value: 8 byte float
+          # - exemplar timestamp: 8 byte float (need to double check the spec)
+          #
+          # - update @positions and @used for this wider value in init_value ~164 bytes
+          # - add read_value_with_exemplar and write_value_with_exemplar
+          # - keep read_value and write_value exactly the same.  The only difference when they run is
+          #   the return value of @positions[key] will have a bigger offset than before.
           def read_value(key)
             if !@positions.has_key?(key)
               init_value(key)

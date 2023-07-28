@@ -42,7 +42,7 @@ describe Prometheus::Middleware::Exporter do
 
     shared_examples 'not acceptable' do |headers|
       it 'responds with 406 Not Acceptable' do
-        message = 'Supported media types: text/plain'
+        message = 'Supported media types: text/plain, application/openmetrics-text'
 
         get '/metrics', nil, headers
 
