@@ -32,11 +32,11 @@ module Prometheus
             yield
           end
 
-          def set(labels:, val:)
+          def set(labels:, val:, exemplar_labels: {}) # no exemplar support for now, this change to make tests pass
             @internal_store[labels] = val.to_f
           end
 
-          def increment(labels:, by: 1)
+          def increment(labels:, by: 1, exemplar_labels: {}) # no exemplar support for now, this change to make tests pass
             @internal_store[labels] += by
           end
 

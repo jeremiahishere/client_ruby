@@ -2,6 +2,7 @@
 
 require 'prometheus/client'
 require 'prometheus/client/formats/text'
+require 'prometheus/client/formats/open_metrics'
 
 module Prometheus
   module Middleware
@@ -14,7 +15,7 @@ module Prometheus
     class Exporter
       attr_reader :app, :registry, :path
 
-      FORMATS  = [Client::Formats::Text].freeze
+      FORMATS  = [Client::Formats::Text, Client::Formats::OpenMetrics].freeze # I think this is all that is needed but I might be missing something
       FALLBACK = Client::Formats::Text
 
       def initialize(app, options = {})

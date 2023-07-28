@@ -102,11 +102,11 @@ module Prometheus
           # Store a value for this metric and a set of labels
           # Internally, may add extra "labels" to disambiguate values between,
           # for example, different processes
-          def set(labels:, val:)
+          def set(labels:, val:, exemplar_labels: {})
             raise NotImplementedError
           end
 
-          def increment(labels:, by: 1)
+          def increment(labels:, by: 1, exemplar_labels: {})
             raise NotImplementedError
           end
   
